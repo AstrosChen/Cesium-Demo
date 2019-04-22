@@ -1,5 +1,15 @@
 var viewer;
+var roadArr = {'highway': {}, 'mainroad':{}, 'railway':{},'secondroad':{},};
 var lng = -73.978, lat = 40.765;
+//尾迹线材质
+var PolylineTrailLinkMaterialProperty = function (color, duration) {
+    this._definitionChanged = new Cesium.Event();
+    this._color = undefined;
+    this._colorSubscription = undefined;
+    this.color = color;
+    this.duration = duration;
+    this._time = (new Date()).getTime() - Math.random(1) * 5000;
+};
 
 var mapImgService = '../assets/tiles/tiles/{z}/{x}/{y}.png';
 $(function () {
@@ -12,17 +22,16 @@ $(function () {
         //加载边界线
         loadborder({url: '../assets/json/nyc_island_border.json', name: 'nyc_border', color: [3, 236, 196, 0.8]});
 
+        //按钮事件绑定
         btnEvent();
+
         //几何
         // building({lng: 130, lat: 35, height: 100});
-
-        //卫星
-        // satellite({lat: 36, lng: 130, height: 40000});
 
         // loadroad();
 
         //后期渲染
-        postProcess();
+        // postProcess();
 
         //尾迹线
         // newPolyLine();
@@ -31,6 +40,7 @@ $(function () {
 
 /**
  * 初始化
+ * @param fn
  */
 function init(fn) {
     viewer = new Cesium.Viewer('cesiumContainer', {	//cesiumContainer为容器id
@@ -47,15 +57,19 @@ function init(fn) {
         // skyBox: false,  //天空盒子
         // navigation: false,  //导航
         orderIndependentTranslucency: true, //如果此项设置为true，并且使用设备支持，将使用与顺序无关的半透明
+        imageryProvider: Cesium.createOpenStreetMapImageryProvider({
+            url: 'https://stamen-tiles.a.ssl.fastly.net/watercolor/'
+        })
     });
 
-    viewer.scene.globe.depthTestAgainstTerrain = false;	//地球开启深度测试
-
-    viewer._cesiumWidget._creditContainer.style.display = "none";//去除logo
+    //地球开启深度测试
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    //去除logo
+    viewer._cesiumWidget._creditContainer.style.display = "none";
 
 
     //更换瓦片图
-    viewer.imageryLayers.remove(viewer.imageryLayers.get(0));
+    /*viewer.imageryLayers.remove(viewer.imageryLayers.get(0));
     var urlTemplateImageryProvider = new Cesium.UrlTemplateImageryProvider({
         url: mapImgService, //瓦片图片地址
         tileHeight: 256,    //图片高的像素
@@ -63,7 +77,7 @@ function init(fn) {
         tilingScheme: new Cesium.WebMercatorTilingScheme(), //坐标系 这里建议使用墨卡托投影坐标系
     });
     viewer.imageryLayers.addImageryProvider(urlTemplateImageryProvider);
-    viewer.scene.skyAtmosphere = new Cesium.SkyAtmosphere();
+    viewer.scene.skyAtmosphere = new Cesium.SkyAtmosphere();*/
     // requestWaterMask: true
 
     viewer.clock.onTick.addEventListener(function () {
@@ -75,8 +89,6 @@ function init(fn) {
             viewer.camera.height = 1;
         }
     };
-
-
 
     Cesium.defineProperties(PolylineTrailLinkMaterialProperty.prototype, {
         isConstant: {
@@ -136,15 +148,18 @@ function init(fn) {
         }
     });
 
-
+    //回调
     if (fn) {
         fn();
     }
 
 }
 
-
-// 从 canvas 提取图片 image
+/**
+ * 从 canvas 提取图片 image
+ * @param canvas
+ * @returns {string}
+ */
 function convertCanvasToImage(canvas) {
     //新Image对象，可以理解为DOM
     var image = new Image();
@@ -154,6 +169,11 @@ function convertCanvasToImage(canvas) {
     return image.src;
 }
 
+/**
+ * 设置一个左右渐变的画布
+ * @param color
+ * @returns {HTMLElement}
+ */
 function setCanvas(color) {
     var canvas = document.getElementById('polylineMatel');
     var height = canvas.offsetHeight;
@@ -168,39 +188,38 @@ function setCanvas(color) {
     return canvas;
 }
 
-
-var PolylineTrailLinkMaterialProperty = function (color, duration) {
-    this._definitionChanged = new Cesium.Event();
-    this._color = undefined;
-    this._colorSubscription = undefined;
-    this.color = color;
-    this.duration = duration;
-    this._time = (new Date()).getTime() - Math.random(1) * 5000;
-};
-
-
+/**
+ * 事件按钮绑定
+ */
 function btnEvent() {
     $('.btngroup').children().click(function () {
         switch ($(this).attr('class')) {
-            case 'satellite':   //卫星
-                satellite();
+            //卫星
+            case 'satellite':
+                satellite({lat: 36, lng: 130, height: 40000});
                 break;
-            case 'olline':  //环球线
+            //环球线
+            case 'olline':
                 newPolyLine();
                 break;
-            case 'radar':   //雷达
+            //雷达
+            case 'radar':
                 setRandar({lat: getNYCPosition()[1], lng: getNYCPosition()[0], height: 0});
                 break;
-            case 'point':   //点
+            //点
+            case 'point':
 
                 break;
-            case 'moveCar':  //相机漫游
+            //相机漫游
+            case 'moveCar':
 
                 break;
-            case 'plan':    //飞机
+            //飞机
+            case 'plan':
                 airplan();
                 break;
-            case 'way': //铁路
+            //铁路
+            case 'way':
                 var name = $(this).attr('id');
                 var url = '../assets/json/way/nyc_' + name + '.json';
                 loadroad({name: name, url: url, color: color});
@@ -219,22 +238,44 @@ function getNYCPosition() {
     return [lng, lat];
 }
 
+
 /**
- *
+ * 加载道路
+ * @param option
  */
 function loadroad(option) {
+
     var opt = {
         fn: option.fn,
         url: option.url,
         name: option.name,
         width: option.width || 3,
         color: option.color || '',
-    }
+        height: option.height || 1
+    };
+    var material = new Cesium.PolylineTrailLinkMaterialProperty(new Cesium.Color(opt.color[0], opt.color[1], opt.color[2], opt.color[3]), 3000);
+
+    var jsonSource = new Cesium.GeoJsonDataSource(opt.name);
+    var promiseroute = jsonSource.load(opt.url);
+    promiseroute.then(function (dataSource) {
+        viewer.dataSources.add(dataSource);
+        var Routes = dataSource.entities.values;
+
+        for (var j = 0; j < Routes.length; j++) {
+            var line = Routes[j];
+            line.polyline.material = material;
+            line.polyline.width = opt.width;
+            line.polyline.height = opt.height;
+        }
+
+    }).otherwise(function (error) {
+        console.log(error);
+    });
 
 }
 
 /**
- * 小飞机
+ * 漫游飞机
  */
 function airplan() {
     var hpRoll = new Cesium.HeadingPitchRoll();
@@ -329,12 +370,8 @@ function loadtiles() {
 
         shadows: Cesium.ShadowMode.DISABLED,    //不投射阴影也不接收阴影
 
-    });*/
-    var tileset = new Cesium.Cesium3DTileset({
-        url: Cesium.IonResource.fromAssetId(3839)
     });
-    var city = viewer.scene.primitives.add(tileset);
-    /*city.readyPromise.then(function (tileset) {
+    city.readyPromise.then(function (tileset) {
         // Position tileset
         var boundingSphere = tileset.boundingSphere;
         var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
@@ -346,7 +383,6 @@ function loadtiles() {
         viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(-74.006, 40.714, 5000), complete: function () {
                 //飞机
-                airplan();
             }
         });
 
@@ -361,6 +397,11 @@ function loadtiles() {
         city.specularEnvironmentMaps = undefined;
         city.luminanceAtZenith = 4;
     });*/
+    var tileset = new Cesium.Cesium3DTileset({
+        url: Cesium.IonResource.fromAssetId(3839)
+    });
+    var city = viewer.scene.primitives.add(tileset);
+
     var heightOffset = 0;
     city.readyPromise.then(function (tileset) {
         // Position tileset
@@ -397,6 +438,15 @@ function setRandar() {
     addCircleScanPostStage(viewer, cartographicCenter, 580, scanColor, 4000);
 }
 
+/**
+ * 创建后期渲染雷达
+ * @param viewer
+ * @param cartographicCenter
+ * @param maxRadius
+ * @param scanColor
+ * @param duration
+ * @returns {*}
+ */
 function addCircleScanPostStage(viewer, cartographicCenter, maxRadius, scanColor, duration) {
     var scanSegmentShader =
         "                        uniform sampler2D colorTexture;\n" +
@@ -489,6 +539,7 @@ function addCircleScanPostStage(viewer, cartographicCenter, maxRadius, scanColor
 
 /**
  * 卫星
+ * @param option
  */
 function satellite(option) {
     var lng = option.lng;
@@ -607,7 +658,10 @@ function satellite(option) {
     });
 }
 
-//自定义几何
+/**
+ * 自定义几何
+ * @param option
+ */
 function building(option) {
     var varr = [0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1];
 
@@ -716,109 +770,6 @@ function building(option) {
  */
 function newPolyLine() {
 
-    // 从 canvas 提取图片 image
-    /*function convertCanvasToImage(canvas) {
-        //新Image对象，可以理解为DOM
-        var image = new Image();
-        // canvas.toDataURL 返回的是一串Base64编码的URL，当然,浏览器自己肯定支持
-        // 指定格式 PNG
-        image.src = canvas.toDataURL("image/png");
-        return image.src;
-    }
-
-    function setCanvas(color) {
-        var canvas = document.getElementById('polylineMatel');
-        var height = canvas.offsetHeight;
-        var width = canvas.offsetWidth;
-        var ctx = canvas.getContext('2d');
-        var grd = ctx.createLinearGradient(0, 0, width, 0);
-        grd.addColorStop(1, 'rgba(' + color[0] + ',' + color[1] + ',' + color[2] + ',1)');
-        // grd.addColorStop(0.5,'rgba('+color[0]+','+color[1]+','+color[2]+','+color[3]+')');
-        grd.addColorStop(0, 'rgba(' + color[0] + ',' + color[1] + ',' + color[2] + ',0)');
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, width, width);
-        return canvas;
-    }
-
-
-    var PolylineTrailLinkMaterialProperty = function (color, duration) {
-        this._definitionChanged = new Cesium.Event();
-        this._color = undefined;
-        this._colorSubscription = undefined;
-        this.color = color;
-        this.duration = duration;
-        this._time = (new Date()).getTime() - Math.random(1) * 5000;
-    };
-    Cesium.defineProperties(PolylineTrailLinkMaterialProperty.prototype, {
-        isConstant: {
-            get: function () {
-                return false;
-            }
-        },
-        definitionChanged: {
-            get: function () {
-                return this._definitionChanged;
-            }
-        },
-        color: Cesium.createPropertyDescriptor('color')
-    });
-    PolylineTrailLinkMaterialProperty.prototype.getType = function (time) {
-        return 'PolylineTrailLink';
-    };
-    PolylineTrailLinkMaterialProperty.prototype.getValue = function (time, result) {
-        if (!Cesium.defined(result)) {
-            result = {};
-        }
-        result.color = Cesium.Property.getValueOrClonedDefault(this._color, time, Cesium.Color.WHITE, result.color);
-        result.image = Cesium.Material.PolylineTrailLinkImage;
-        result.time = (((new Date()).getTime() - this._time) % this.duration) / this.duration;
-        return result;
-    };
-    PolylineTrailLinkMaterialProperty.prototype.equals = function (other) {
-        return this === other ||
-            (other instanceof PolylineTrailLinkMaterialProperty &&
-                Cesium.Property.equals(this._color, other._color))
-    };
-    Cesium.PolylineTrailLinkMaterialProperty = PolylineTrailLinkMaterialProperty;
-    Cesium.Material.PolylineTrailLinkType = 'PolylineTrailLink';
-    // Cesium.Material.PolylineTrailLinkImage = "images/colors1.png";
-    Cesium.Material.PolylineTrailLinkImage = convertCanvasToImage(setCanvas([255, 255, 255]));
-    Cesium.Material.PolylineTrailLinkSource = "czm_material czm_getMaterial(czm_materialInput materialInput)\n\
-                                                  {\n\
-                                                       czm_material material = czm_getDefaultMaterial(materialInput);\n\
-                                                       vec2 st = materialInput.st;\n\
-                                                       vec4 colorImage = texture2D(image, vec2(fract(st.s - time), st.t));\n\
-                                                       material.alpha = colorImage.a * color.a;\n\
-                                                       material.diffuse = (colorImage.rgb+color.rgb)/2.0;\n\
-                                                       return material;\n\
-                                                   }";
-    Cesium.Material._materialCache.addMaterial(Cesium.Material.PolylineTrailLinkType, {
-        fabric: {
-            type: Cesium.Material.PolylineTrailLinkType,
-            uniforms: {
-                color: new Cesium.Color(1.0, 1.0, 1.0, 1),
-                image: Cesium.Material.PolylineTrailLinkImage,
-                time: 0
-            },
-            source: Cesium.Material.PolylineTrailLinkSource
-        },
-        translucent: function (material) {
-            return true;
-        }
-    });*/
-
-    /*var points = getCurveDynamicPointsAndLine([Math.random()*180, Math.random()*90], [Math.random()*180, Math.random()*90], 3000000);
-    var material = new Cesium.PolylineTrailLinkMaterialProperty(new Cesium.Color(0, 1, 0, 1), 3000);
-
-    viewer.entities.add({
-        name: 'PolylineTrailLink',
-        polyline: {
-            positions: Cesium.Cartesian3.fromDegreesArrayHeights(points),
-            width: 2,
-            material: material,
-        }
-    });*/
-
     var end = [lng, lat];
 
     for (var i = 0; i < 30; i++) {
@@ -844,9 +795,7 @@ function postProcess() {
     /*var Blur = `uniform float height;
                 uniform float width;
                 uniform sampler2D colorTexture1;
-
                 varying vec2 v_textureCoordinates;
-
                 const int SAMPLES = 2;
                 void main()
                 {
