@@ -6,7 +6,6 @@ $(function () {
     init(function () {
         //初始化后执行
 
-
         //加载建筑
         loadtiles();
 
