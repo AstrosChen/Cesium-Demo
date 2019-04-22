@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="../Build/Cesium-1.56.1/Widgets/widgets.css">
+    <link rel="stylesheet" href="css/all.css">
+    <style>
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+        }
+
+        #toolbar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            /*background: #fff;*/
+        }
+    </style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="../Build/Cesium-1.56.1/Cesium.js"></script>
+<script src="js/stats.min.js"></script>
+<script src="js/Custom_Entitys.js"></script>
+<script>
+    function startup(Cesium) {
+        //Sandcastle_Begin
+        var viewer = new Cesium.Viewer('cesiumContainer', {
+            shouldAnimate : true
+        });
+
+        var numberOfArcs = 50;
+        var startLon = -74;
+        var startLat = 39;
+
+        viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
+        viewer.clock.multiplier = 1800;
+
+        var startTime = viewer.clock.startTime;
+        var midTime = Cesium.JulianDate.addSeconds(startTime, 43200, new Cesium.JulianDate());
+        var stopTime = Cesium.JulianDate.addSeconds(startTime, 86400, new Cesium.JulianDate());
+
+        for (var i = 0; i < numberOfArcs; ++i) {
+            var color = Cesium.Color.fromRandom({
+                alpha : 1.0
+            });
+            var stopLon = Cesium.Math.nextRandomNumber() * 358 - 179;
+            var stopLat = Cesium.Math.nextRandomNumber() * 178 - 89;
+
+            // Create a straight-line path.
+            var property = new Cesium.SampledPositionProperty();
+            var startPosition = Cesium.Cartesian3.fromDegrees(startLon, startLat, 0);
+            property.addSample(startTime, startPosition);
+            var stopPosition = Cesium.Cartesian3.fromDegrees(stopLon, stopLat, 0);
+            property.addSample(stopTime, stopPosition);
+
+            // Find the midpoint of the straight path, and raise its altitude.
+            var midPoint = Cesium.Cartographic.fromCartesian(property.getValue(midTime));
+            midPoint.height = Cesium.Math.nextRandomNumber() * 500000 + 2500000;
+            var midPosition = viewer.scene.globe.ellipsoid.cartographicToCartesian(
+                midPoint, new Cesium.Cartesian3());
+
+            // Redo the path to be the new arc.
+            property = new Cesium.SampledPositionProperty();
+            property.addSample(startTime, startPosition);
+            property.addSample(midTime, midPosition);
+            property.addSample(stopTime, stopPosition);
+
+            // Create an Entity to show the arc.
+            var arcEntity = viewer.entities.add({
+                position : property,
+                // The point is optional, I just wanted to see it.
+                point : {
+                    pixelSize : 8,
+                    color : Cesium.Color.TRANSPARENT,
+                    outlineColor : color,
+                    outlineWidth : 3
+                },
+                path : {
+                    resolution : 1200,
+                    material : new Cesium.PolylineGlowMaterialProperty({
+                        glowPower : 0.16,
+                        taperPower : 0.25,
+                        color : color
+                    }),
+                    width : 10,
+                    leadTime: 0,
+                    trailTime: 1e10
+                }
+            });
+
+            arcEntity.position.setInterpolationOptions({
+                interpolationDegree : 5,
+                interpolationAlgorithm : Cesium.LagrangePolynomialApproximation
+            });
+        }
+    }
+
+    if (typeof Cesium !== 'undefined') {
+        startup(Cesium);
+    } else if (typeof require === 'function') {
+        require(['Cesium'], startup);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>带尾迹线多个移动路径</title>
+    <link rel="stylesheet" href="../Build/Cesium-1.56.1/Widgets/widgets.css">
+    <link rel="stylesheet" href="css/all.css">
+    <style>
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+        }
+
+        #toolbar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            /*background: #fff;*/
+        }
+    </style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="../Build/Cesium-1.56.1/Cesium.js"></script>
+<script src="js/stats.min.js"></script>
+<script src="js/Custom_Entitys.js"></script>
+<script>
+    var viewer, bill;
+    var beforTime = 0;
+
+    var trainArr = [];  //数据数组
+
+    $(function () {
+        init();
+    });
+
+    function init() {
+        viewer = new Cesium.Viewer('cesiumContainer', {
+            shouldAnimate: true
+        });
+
+        //帧插件
+        stats = new Stats();
+        document.body.appendChild(stats.dom);
+
+        //单路线实现移动方式
+        // movebillboard();
+        $.get("assets/json/hb_train.json", function (result) {
+            viewer.dataSources.add(Cesium.GeoJsonDataSource.load(result, {
+                stroke: Cesium.Color.BLACK,
+                fill: Cesium.Color.BLACK,
+                strokeWidth: 3,
+                markerSymbol: 'train'
+            }));
+            for (var i = 0; i < result.geometries.length; i++) {
+                if (result.geometries[i].coordinates.length < 100) {
+                    continue;
+                }
+                var pathPositions = new Cesium.SampledPositionProperty();
+                var road = {
+                    temp: 0,
+                    pathPoint: result.geometries[i].coordinates,
+                    begin: result.geometries[i].coordinates[0],
+                    end: result.geometries[i].coordinates[1],
+                    // pointLength: result.geometries[i].coordinates.length,
+                    point: [],
+                    billboard: {
+                        name: 'bill' + i,
+                        position: Cesium.Cartesian3.fromDegrees(result.geometries[0][0], result.geometries[0][1], 0),
+                        billboard: {
+                            show: true,
+                            scale: 0.5,
+                            image: 'images/cart.png',
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        }
+                    },
+                    pathPosition: pathPositions,
+                    path: {
+                        position: pathPositions,
+                        name: 'path' + i,
+                        path: {
+                            show: true,
+                            leadTime: 100,
+                            trailTime: 100,
+                            width: 5,
+                            resolution: 1,
+                            material: new Cesium.StripeMaterialProperty({
+                                evenColor: Cesium.Color.YELLOW,
+                                oddColor: Cesium.Color.RED.withAlpha(0),
+                                repeat: 1,
+                                offset: 0.85,//0.55,
+                                orientation: Cesium.StripeOrientation.VERTICAL
+                            }),
+                        }
+                    },
+                    billboardObj: null,
+                    pathObj: null,
+                };
+
+                trainArr.push(road);
+            }
+            movebillboard();
+        });
+
+    }
+
+    function movebillboard() {
+
+        for (var i = 0; i < trainArr.length; i++) {
+            trainArr[i].billboardObj = viewer.entities.add(trainArr[i].billboard);
+            trainArr[i].pathObj = viewer.entities.add(trainArr[i].path);
+        }
+
+        viewer.scene.preUpdate.addEventListener(function (scene, time) {
+            stats.update();
+
+            var chas = time.secondsOfDay - beforTime;
+            // console.log(chas + '毫秒');
+
+            if (chas >= 1) {
+                beforTime = time.secondsOfDay;
+                // console.log('时间过去了1秒');
+
+                for (var i = 0; i < trainArr.length; i++) {
+                    if (trainArr[i].temp + 1 == trainArr[i].pathPoint.length) {
+                        trainArr[i].temp = 0;
+                    }
+
+                    trainArr[i].begin = trainArr[i].pathPoint[trainArr[i].temp];
+                    trainArr[i].end = trainArr[i].pathPoint[trainArr[i].temp + 1];
+                    trainArr[i].point = lastparam(trainArr[i].begin, trainArr[i].end);
+
+                    trainArr[i].temp++;
+                }
+
+            } else {
+                for (var j = 0; j < trainArr.length; j++) {
+
+                    var position = Cesium.Cartesian3.fromDegrees(trainArr[j].begin[0] + (trainArr[j].point[0] * chas), trainArr[j].begin[1] + (trainArr[j].point[1] * chas), 0.2);
+                    trainArr[j].billboardObj.position = position;
+                    trainArr[j].pathPosition.addSample(Cesium.JulianDate.now(), position);
+                }
+
+            }
+
+
+        });
+
+    }
+
+
+    function lastparam(begin, end) {
+        var lng = end[0] - begin[0];
+        var lat = end[1] - begin[1];
+        return [lng, lat];
+    }
+
+
+</script>
+</body>
+</html>

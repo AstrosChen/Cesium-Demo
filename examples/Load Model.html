@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>加载自带动画的gltf模型</title>
+    <link rel="stylesheet" href="../Build/Cesium-1.56.1/Widgets/widgets.css">
+    <link rel="stylesheet" href="css/all.css">
+    <style>
+        .button {
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="../Build/Cesium-1.56.1/Cesium.js"></script>
+<script src="js/Custom_Entitys.js"></script>
+<script>
+    var viewer;
+    $(function () {
+        init();
+    });
+
+    function init() {
+        viewer = new Cesium.Viewer('cesiumContainer', {
+            shouldAnimate: true
+        });
+        loadmodel();
+    }
+
+    function loadmodel() {
+        var hpRoll = new Cesium.HeadingPitchRoll();
+        var hpRange = new Cesium.HeadingPitchRange();
+        var speed = 10;
+        var deltaRadians = Cesium.Math.toRadians(3.0);
+
+        var position = Cesium.Cartesian3.fromDegrees(-123.0744619, 44.0503706, 1000.0);
+        var speedVector = new Cesium.Cartesian3();
+        var fixedFrameTransform = Cesium.Transforms.localFrameToFixedFrameGenerator('north', 'west');
+
+        var planePrimitive = viewer.scene.primitives.add(Cesium.Model.fromGltf({
+            url: 'assets/models/low_poly_apache_gunship/scene.gltf',
+            modelMatrix: Cesium.Transforms.headingPitchRollToFixedFrame(position, hpRoll, Cesium.Ellipsoid.WGS84, fixedFrameTransform),
+            minimumPixelSize: 128,
+            // maximumScale: 128,
+            color: Cesium.Color.WHITE
+        }));
+
+        planePrimitive.readyPromise.then(function (model) {
+            // Play and loop all animations at half-speed
+            model.activeAnimations.addAll({
+                multiplier: 0.5,
+                loop: Cesium.ModelAnimationLoop.REPEAT
+            });
+        });
+
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(-123.0744619, 44.0503706, 2000.0),   //经度不变 纬度位置降低 高度降低
+            duration: 1,
+            easingFunction: Cesium.EasingFunction.LINEAR_NONE,
+        });
+    }
+</script>
+</body>
+</html>

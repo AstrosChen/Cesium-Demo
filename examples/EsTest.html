@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+    function Person(name, age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    function tech(sex) {
+        this.sex = sex;
+    }
+
+    function student(name, age, clas) {
+        this.clas = clas;
+        Person.apply(this, arguments);
+        console.log(this.clas + ' ' + this.name + ' ' + this.age);
+    }
+
+    var abc = function () {
+        this.init.apply(this, arguments);
+    };
+
+    abc.prototype = {
+        init: function (name, age) {
+            console.log('asdfasdfasdfasf');
+        }
+    }
+</script>
+</body>
+</html>

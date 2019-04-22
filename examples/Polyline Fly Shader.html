@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="keywords" content="Shader,Material,Polyline">
+    <title>着色器飞线</title>
+    <link rel="stylesheet" href="../Build/Cesium-1.56.1/Widgets/widgets.css">
+    <link rel="stylesheet" href="css/all.css">
+    <style>
+        .button{
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+<button class="button" onclick="addPolyLine()">添加</button>
+<div id="cesiumContainer"></div>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="../Build/Cesium-1.56.1/Cesium.js"></script>
+<script src="js/Custom_Entitys.js"></script>
+<script>
+    var viewer;
+    $(function () {
+        init();
+    });
+
+    function init(fn) {
+        viewer = new Cesium.Viewer('cesiumContainer');
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+        if (fn) {
+            fn();
+        }
+    }
+
+    function addPolyLine() {
+        var option = {size: 5}
+        var opt = {
+            sn: parseFloat(Math.random() * 180),
+            sa: parseFloat(Math.random() * 90),
+            en: parseFloat(Math.random() * 180),
+            ea: parseFloat(Math.random() * 90),
+            s: option.size || 3,
+            h: parseFloat(option.height) || 550000 * 4,
+            c: option.color || [118, 233, 241],
+            lo: option.linealpha || 0.2,
+            fo: option.flyalpha || 0.8,
+            name: option.name || 'flyline',
+            flag: option.flag || false,
+            flyflag: option.flyflag || false,
+            info: option.info,
+        };
+        var path = getCurveDynamicPointsAndLine([opt.sn, opt.sa], [opt.en, opt.ea], opt.h);
+
+        var apper = new Cesium.PolylineColorAppearance({
+            translucent: true,
+            vertexShaderSource: ``,
+            fragmentShaderSource: ``,
+
+        });
+
+        var primitive = new Cesium.Primitive({
+            geometryInstances : new Cesium.GeometryInstance({
+                geometry : new Cesium.PolylineGeometry({
+                    positions : path,
+                    width : 10.0,
+                    vertexFormat : Cesium.PolylineColorAppearance.VERTEX_FORMAT
+                }),
+                attributes : {
+                    color : Cesium.ColorGeometryInstanceAttribute.fromColor(new Cesium.Color(1.0, 1.0, 1.0, 1.0))
+                }
+            }),
+            appearance : apper,
+        });
+    }
+</script>
+</body>
+</html>
