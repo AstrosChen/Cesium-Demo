@@ -34,8 +34,6 @@ $(function () {
         //几何
         // building({lng: 130, lat: 35, height: 100});
 
-        // loadroad();
-
         //后期渲染
         // postProcess();
 
