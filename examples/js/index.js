@@ -1,5 +1,11 @@
 var viewer;
-var roadArr = {'highway': {}, 'mainroad':{}, 'railway':{},'secondroad':{},};
+var roadArr = {
+    'highway': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
+    'mainroad': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
+    'railway': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
+    'secondroad': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
+    'subway': {color: [Math.random(1), Math.random(1), Math.random(1), 1]}
+};
 var lng = -73.978, lat = 40.765;
 //尾迹线材质
 var PolylineTrailLinkMaterialProperty = function (color, duration) {
@@ -220,9 +226,28 @@ function btnEvent() {
                 break;
             //铁路
             case 'way':
+                var show;
+                if ($(this).is(':checked')) {
+                    show = true;
+                } else {
+                    show = false;
+                }
                 var name = $(this).attr('id');
                 var url = '../assets/json/way/nyc_' + name + '.json';
-                loadroad({name: name, url: url, color: color});
+                roadArr[name].initFlag = roadArr[name].initFlag ? true : false;
+                if (roadArr[name].initFlag) {
+                    //已初始化
+                    if (show) {
+                        roadArr[name].obj.show = true;
+                    } else {
+                        roadArr[name].obj.show = false;
+                    }
+                } else {
+                    //未初始化
+                    loadroad({name: name, url: url, color: roadArr[name].color});
+                }
+                break;
+            default:
                 break;
         }
     });
@@ -258,7 +283,7 @@ function loadroad(option) {
     var jsonSource = new Cesium.GeoJsonDataSource(opt.name);
     var promiseroute = jsonSource.load(opt.url);
     promiseroute.then(function (dataSource) {
-        viewer.dataSources.add(dataSource);
+        var road = viewer.dataSources.add(dataSource);
         var Routes = dataSource.entities.values;
 
         for (var j = 0; j < Routes.length; j++) {
@@ -267,6 +292,9 @@ function loadroad(option) {
             line.polyline.width = opt.width;
             line.polyline.height = opt.height;
         }
+
+        roadArr[opt.name].obj = road;
+        roadArr[opt.name].initFlag = true;
 
     }).otherwise(function (error) {
         console.log(error);
