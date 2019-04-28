@@ -17,6 +17,8 @@ var PolylineTrailLinkMaterialProperty = function (color, duration) {
     this._time = (new Date()).getTime() - Math.random(1) * 5000;
 };
 
+
+
 var mapImgService = '../assets/tiles/tiles/{z}/{x}/{y}.png';
 $(function () {
     init(function () {
