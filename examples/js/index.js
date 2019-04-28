@@ -1,10 +1,10 @@
 var viewer;
 var roadArr = {
-    'highway': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
-    'mainroad': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
-    'railway': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
-    'secondroad': {color: [Math.random(1), Math.random(1), Math.random(1), 1]},
-    'subway': {color: [Math.random(1), Math.random(1), Math.random(1), 1]}
+    'highway': {color: [0,255,181, 1]}, //高速
+    'mainroad': {color: [255,255,0, 1]}, //主干道
+    'railway': {color: [255, 0, 0, 1]},//铁路
+    'secondroad': {color: [255,0,43, 1]}, //街道
+    'subway': {color: [175,0,255, 1]}  //地铁
 };
 var lng = -73.978, lat = 40.765;
 //尾迹线材质
@@ -222,7 +222,7 @@ function btnEvent() {
             case 'plan':
                 airplan();
                 break;
-            //铁路
+            //道路
             case 'way':
                 var show;
                 if ($(this).is(':checked')) {
@@ -230,7 +230,9 @@ function btnEvent() {
                 } else {
                     show = false;
                 }
+                //道路类型
                 var name = $(this).attr('id');
+                //获取数据地址
                 var url = '../assets/json/way/nyc_' + name + '.json';
                 roadArr[name].initFlag = roadArr[name].initFlag ? true : false;
                 if (roadArr[name].initFlag) {
@@ -291,7 +293,7 @@ function loadroad(option) {
             line.polyline.height = opt.height;
         }
 
-        roadArr[opt.name].obj = road;
+        roadArr[opt.name].obj = dataSource;
         roadArr[opt.name].initFlag = true;
 
     }).otherwise(function (error) {
@@ -372,8 +374,6 @@ function loadborder(option) {
  * 加载3dtiles
  */
 function loadtiles() {
-
-
     /*var tileset = new Cesium.Cesium3DTileset({
         url: '../assets/3Dtiles/NewYork3/NewYork/tileset.json',
         maximumScreenSpaceError: 2,
