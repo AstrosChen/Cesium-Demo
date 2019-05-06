@@ -158,7 +158,6 @@ function init(fn) {
     if (fn) {
         fn();
     }
-
 }
 
 /**
