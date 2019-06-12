@@ -17,7 +17,40 @@ var PolylineTrailLinkMaterialProperty = function (color, duration) {
     this._time = (new Date()).getTime() - Math.random(1) * 5000;
 };
 
+var Tick = function (fn) {
+    const _this = this;
+    _this.isRun = true;
+    _this.limit = 15;
+    _this.up = 0;
+    _this.second = 0;
+    _this.interval = null;
+    _this.init = function () {
+        clearInterval(_this.interval);
+        _this.interval = setInterval(_this.cycle, 1000);
+    };
+    _this.debug = function () {
+        console.log("时间过去"+_this.second+"秒");
+    };
+    _this.animation = fn || function () {};
+    _this.begin = function () {
+        _this.animation();
+    };
 
+    _this.cycle = function () {
+        _this.up++;
+        _this.second++;
+        // _this.debug();
+        if(_this.isRun){
+            if(_this.up > _this.limit){
+                _this.up = 0;
+                _this.begin();
+            }
+        }else{
+            return;
+        }
+    };
+    _this.init();
+};
 
 var mapImgService = '../assets/tiles/tiles/{z}/{x}/{y}.png';
 $(function () {
@@ -217,7 +250,23 @@ function btnEvent() {
                 break;
             //相机漫游
             case 'moveCar':
-
+                var index = 0;
+                var tick = new Tick(function () {
+                    if(index>=area.length){
+                        index = 0;
+                    }
+                    viewer.camera.flyTo({
+                        destination : Cesium.Cartesian3.fromDegrees(area[index][0], area[index][1], 5000.0),
+                        orientation: {
+                            heading : Cesium.Math.toRadians(-15.0),
+                            pitch : -Cesium.Math.PI_OVER_FOUR,
+                            roll : 0.0
+                        },
+                        duration: 12,
+                        // flyOverLongitude: Cesium.Math.toRadians(60.0)
+                    });
+                    index++;
+                });
                 break;
             //飞机
             case 'plan':
@@ -248,10 +297,17 @@ function btnEvent() {
                     loadroad({name: name, url: url, color: roadArr[name].color});
                 }
                 break;
+            case 'car':
+                createMoveCar();
+                break;
             default:
                 break;
         }
     });
+}
+
+function createMoveCar(){
+
 }
 
 /**

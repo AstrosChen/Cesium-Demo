@@ -50,7 +50,7 @@
         viewer.imageryLayers.addImageryProvider(urlTemplateImageryProvider);
         viewer.scene.skyAtmosphere = new Cesium.SkyAtmosphere();
 
-        satellite();
+        satellite({lng: Math.random()*180, lat: Math.random()*90});
 
     }
 

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="../Build/Cesium-1.56.1/Widgets/widgets.css">
+    <link rel="stylesheet" href="css/all.css">
+    <style>
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="../Build/Cesium-1.56.1/Cesium.js"></script>
+<script>
+    init();
+
+    function init() {
+        viewer = new Cesium.Viewer('cesiumContainer', {	//cesiumContainer为容器id
+            cesiumLogo: false,  //是否显示cesium商标
+            orderIndependentTranslucency: true, //如果此项设置为true，并且使用设备支持，将使用与顺序无关的半透明
+            imageryProvider: Cesium.createOpenStreetMapImageryProvider({
+                url: 'https://stamen-tiles.a.ssl.fastly.net/watercolor/'
+            })
+        });
+
+        //地球开启深度测试
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        //去除logo
+        viewer._cesiumWidget._creditContainer.style.display = "none";
+
+        // Create an ellipse.
+        var ellipse = new Cesium.EllipseGeometry({
+            center: Cesium.Cartesian3.fromDegrees(-75.59777, 40.03883),
+            semiMajorAxis: 500000.0,
+            semiMinorAxis: 300000.0,
+            rotation: Cesium.Math.toRadians(60.0)
+        });
+        var geometry = Cesium.EllipseGeometry.createGeometry(ellipse);
+
+        var instance = new Cesium.GeometryInstance({
+            geometry: geometry,
+            id: 'ellipse'
+        });
+
+        viewer.scene.primitives.add(new Cesium.Primitive({
+            geometryInstances : instance,
+            appearance : new Cesium.EllipsoidSurfaceAppearance({
+                // material : Cesium.Material.fromType('Checkerboard'),
+                vertexShaderSource: ``,
+                fragmentShaderSource: `
+                                //Free to use as you wish. Have fun
+                                #define green vec3(0.0,1.0,0.0)
+
+                                // 时间
+                                uniform float iTime;
+                                // 分辨率
+                                uniform vec2 iResolution;
+                                // 鼠标位置
+                                uniform vec2 iMouse;
+
+                                // returns a vec3 color from every pixel requested.
+                                // Generates a BnW Ping on normalized 2d coordinate system
+                                vec3 RadarPing(in vec2 uv, in vec2 center, in float innerTail,
+                                               in float frontierBorder, in float timeResetSeconds,
+                                               in float radarPingSpeed, in float fadeDistance)
+                                {
+                                    vec2 diff = center-uv;
+                                    float r = length(diff);
+                                    float time = mod(iTime, timeResetSeconds) * radarPingSpeed;
+
+                                    float circle;
+                                    // r is the distance to the center.
+                                    // circle = BipCenter---//---innerTail---time---frontierBorder
+                                    //illustration
+                                    //https://sketch.io/render/sk-14b54f90080084bad1602f81cadd4d07.jpeg
+                                    circle += smoothstep(time - innerTail, time, r) * smoothstep(time + frontierBorder,time, r);
+                                    circle *= smoothstep(fadeDistance, 0.0, r); // fade to 0 after fadeDistance
+
+                                    return vec3(circle);
+                                }
+
+                                void main()
+                                {
+                                    //normalize coordinates
+                                    vec2 uv = gl_FragCoord.xy / iResolution.xy; //move coordinates to 0..1
+                                    uv = uv.xy*2.; // translate to the center
+                                    uv += vec2(-1.0, -1.0);
+                                    uv.x *= iResolution.x/iResolution.y; //correct the aspect ratio
+
+                                    vec3 color;
+                                    // generate some radar pings
+                                    float fadeDistance = 1.0;
+                                    float resetTimeSec = 4.0;
+                                    float radarPingSpeed = 0.3;
+                                    vec2 greenPing = vec2(0.0, 0.0);
+                                    color += RadarPing(uv, greenPing, 0.25, 0.025, resetTimeSec, radarPingSpeed, fadeDistance) * green;
+
+                                    //return the new color
+                                    gl_FragColor = vec4(color,1.0);
+                                }
+                                `,
+            })
+        }));
+    }
+</script>
+</body>
+</html>
